@@ -18,7 +18,10 @@ class ColorExtractor:
         self.hist_u = cv2.calcHist([luv], [1], None, [256], [0, 256])
         self.hist_v = cv2.calcHist([luv], [2], None, [256], [0, 256])
 
+        plt.figure(1)
         plt.plot(self.hist_lightness, label='lightness')
+        plt.legend()
+
         plt.show()
 
     def k(self, t):
@@ -30,14 +33,20 @@ class ColorExtractor:
         """
         d0 = np.std(self.hist_lightness)**2
         n0 = np.sum(self.hist_lightness)
-        hist_higher = self.hist_lightness[t:]
-        hist_lower = self.hist_lightness[:t]
-        d1 = np.std(hist_lower)
-        n1 = np.sum(hist_lower)
-        d2 = np.std(hist_higher)
-        n2 = np.sum(hist_higher)
-        # plt.plot(hist_higher, label=f"higher, t={t}")
-        # plt.plot(hist_lower, label=f"higher, t={t}")
+
+        # Create masks given threshold t, and calculate histograms:
+        lower_mask = cv2.inRange(self.luv, np.array([0, 0, 0]), np.array([t - 1, 255, 255]))
+        higher_mask = cv2.inRange(self.luv, np.array([t, 0, 0]), np.array([255, 255, 255]))
+        lower_hist = cv2.calcHist([self.luv], [0], lower_mask, [256], [0, 256])
+        higher_hist = cv2.calcHist([self.luv], [0], higher_mask, [256], [0, 256])
+
+        # Calculate Dispersion and number of pixels:
+        d1 = np.std(lower_hist)
+        n1 = np.sum(lower_hist)
+        d2 = np.std(higher_hist)
+        n2 = np.sum(higher_hist)
+
+        # Calculate metric k:
         return (sqrt(d1*n1) + sqrt(d2*n2)) / (sqrt(d0*n0))
 
     def min_k(self):
@@ -45,34 +54,53 @@ class ColorExtractor:
         for t in range(1, 255):
             lst.append((t, self.k(t)))
         ts, ks = zip(*lst)
+        plt.figure(4)
         plt.plot(ks, label='approach 1')
         plt.legend()
-        plt.show()
+        # plt.show()
         return min(lst, key=lambda x: x[1])
+
+    def threshold_image(self, t):
+        lower_mask = cv2.inRange(self.luv, np.array([0, 0, 0]), np.array([t - 1, 255, 255]))
+        higher_mask = cv2.inRange(self.luv, np.array([t, 0, 0]), np.array([255, 255, 255]))
+        lower_masked_image = cv2.bitwise_and(self.img, self.img, mask=lower_mask)
+        higher_masked_image = cv2.bitwise_and(self.img, self.img, mask=higher_mask)
+        return lower_masked_image, higher_masked_image, lower_mask, higher_mask
+
+    def do_cool_stuff(self):
+        t = 64
+        lower_image, higher_image, lower_mask, higher_mask = self.threshold_image(t)
+        lower_hist = cv2.calcHist([self.luv], [0], lower_mask, [256], [0, 256])
+        higher_hist = cv2.calcHist([self.luv], [0], higher_mask, [256], [0, 256])
+        plt.figure(2)
+        plt.subplot(321), plt.imshow(self.img)
+        plt.subplot(322), plt.plot(self.hist_lightness)
+        plt.subplot(323), plt.imshow(lower_image)
+        plt.subplot(324), plt.plot(lower_hist)
+        plt.subplot(325), plt.imshow(higher_image)
+        plt.subplot(326), plt.plot(higher_hist)
+
 
 # Get brightness histogram
 # hist = cv2.calcHist([luv], [0], None, [256], [0, 256])
 # hist,bins = np.histogram(img.ravel(),256,[0,256])
 
-
+# plot images
+# cv2.imshow('first_cluster', cv2.resize(first_cluster, (960, 540)))
+#         cv2.imshow('second_cluster', cv2.resize(second_cluster, (960, 540)))
+#         cv2.waitKey(0)
+#         cv2.destroyAllWindows()
 
 
 if __name__ == "__main__":
-    c = ColorExtractor("cloud.png")
+    c = ColorExtractor("9.jpg")
     # print(c.k(64), c.k(128), c.k(192))
     # print(c.k(64))
     # plt.legend()
     # plt.show()
-    t, k = c.min_k()
-    print(t,k)
-    first_cluster_mask = cv2.inRange(c.luv, np.array([0,0,0]), np.array([t,255,255]))
-    second_cluster_mask = cv2.inRange(c.luv, np.array([t,0,0]), np.array([255,255,255]))
-    first_cluster = cv2.bitwise_and(c.img, c.img, mask=first_cluster_mask)
-    second_cluster = cv2.bitwise_and(c.img, c.img, mask=second_cluster_mask)
-    cv2.imshow('first_cluster', cv2.resize(first_cluster, (960, 540)))
-    cv2.imshow('second_cluster', cv2.resize(second_cluster, (960, 540)))
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    # t, k = c.min_k()
+    # print(t,k)
+    # c.threshold_image(t)
 # # get only blue:
 # lower_blue = np.array([110,50,50])
 # upper_blue = np.array([130,255,255])
