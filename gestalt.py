@@ -7,7 +7,6 @@ from scipy.optimize import brute, minimize_scalar
 # img = cv2.imread("9.jpg")
 
 
-
 class ColorExtractor:
 
     def __init__(self, img_path):
@@ -22,8 +21,6 @@ class ColorExtractor:
         plt.plot(self.hist_lightness, label='lightness')
         plt.legend()
 
-        plt.show()
-
     def k(self, t):
         """
         Function that calculates the clustering metric k, based on an input threshold. Small k means
@@ -32,53 +29,59 @@ class ColorExtractor:
         :return: the value of the k metric.
         """
         d0 = np.std(self.hist_lightness)**2
-        n0 = np.sum(self.hist_lightness)
+        n0 = int(np.sum(self.hist_lightness))
 
         # Create masks given threshold t, and calculate histograms:
-        lower_mask = cv2.inRange(self.luv, np.array([0, 0, 0]), np.array([t - 1, 255, 255]))
-        higher_mask = cv2.inRange(self.luv, np.array([t, 0, 0]), np.array([255, 255, 255]))
+        lower_mask, higher_mask = self.get_threshold_masks(t)
         lower_hist = cv2.calcHist([self.luv], [0], lower_mask, [256], [0, 256])
         higher_hist = cv2.calcHist([self.luv], [0], higher_mask, [256], [0, 256])
 
         # Calculate Dispersion and number of pixels:
         d1 = np.std(lower_hist)
-        n1 = np.sum(lower_hist)
+        n1 = int(np.sum(lower_hist))
         d2 = np.std(higher_hist)
-        n2 = np.sum(higher_hist)
+        n2 = int(np.sum(higher_hist))
+
+        if n1 + n2 != n0:
+            print(f"n1+n2 must be equal to n0, while we have {n1}+{n2}={n1+n2}!={n0}")
+            exit(1)
 
         # Calculate metric k:
         return (sqrt(d1*n1) + sqrt(d2*n2)) / (sqrt(d0*n0))
 
     def min_k(self):
         lst = []
-        for t in range(1, 255):
+        for t in range(1, 256):
             lst.append((t, self.k(t)))
         ts, ks = zip(*lst)
         plt.figure(4)
-        plt.plot(ks, label='approach 1')
+        plt.plot(ks, label='Metric k values per threshold value')
         plt.legend()
         # plt.show()
         return min(lst, key=lambda x: x[1])
 
-    def threshold_image(self, t):
-        lower_mask = cv2.inRange(self.luv, np.array([0, 0, 0]), np.array([t - 1, 255, 255]))
+    def l(self, t):
+        pass
+
+    def get_threshold_masks(self, t):
+        lower_mask = cv2.inRange(self.luv, np.array([0, 0, 0]), np.array([t-1, 255, 255]))
         higher_mask = cv2.inRange(self.luv, np.array([t, 0, 0]), np.array([255, 255, 255]))
+        return lower_mask, higher_mask
+
+    def threshold_image(self, t):
+        lower_mask, higher_mask = self.get_threshold_masks(t)
         lower_masked_image = cv2.bitwise_and(self.img, self.img, mask=lower_mask)
         higher_masked_image = cv2.bitwise_and(self.img, self.img, mask=higher_mask)
-        return lower_masked_image, higher_masked_image, lower_mask, higher_mask
-
-    def do_cool_stuff(self):
-        t = 64
-        lower_image, higher_image, lower_mask, higher_mask = self.threshold_image(t)
         lower_hist = cv2.calcHist([self.luv], [0], lower_mask, [256], [0, 256])
         higher_hist = cv2.calcHist([self.luv], [0], higher_mask, [256], [0, 256])
         plt.figure(2)
         plt.subplot(321), plt.imshow(self.img)
         plt.subplot(322), plt.plot(self.hist_lightness)
-        plt.subplot(323), plt.imshow(lower_image)
+        plt.subplot(323), plt.imshow(lower_masked_image)
         plt.subplot(324), plt.plot(lower_hist)
-        plt.subplot(325), plt.imshow(higher_image)
+        plt.subplot(325), plt.imshow(higher_masked_image)
         plt.subplot(326), plt.plot(higher_hist)
+
 
 
 # Get brightness histogram
@@ -93,13 +96,15 @@ class ColorExtractor:
 
 
 if __name__ == "__main__":
-    c = ColorExtractor("9.jpg")
+    c = ColorExtractor("15.jpg")
     # print(c.k(64), c.k(128), c.k(192))
     # print(c.k(64))
     # plt.legend()
     # plt.show()
-    # t, k = c.min_k()
-    # print(t,k)
+    t, k = c.min_k()
+    c.threshold_image(t)
+    print(t,k)
+    plt.show()
     # c.threshold_image(t)
 # # get only blue:
 # lower_blue = np.array([110,50,50])
