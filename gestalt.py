@@ -3,6 +3,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from math import sqrt
 from scipy.optimize import brute, minimize_scalar
+from scipy import ndimage
 
 # img = cv2.imread("9.jpg")
 
@@ -12,10 +13,12 @@ class ColorExtractor:
     def __init__(self, img_path):
         self.img = cv2.imread(img_path)
         self.luv = luv = cv2.cvtColor(self.img, cv2.COLOR_BGR2Luv)
-        print(luv.min, luv.max)
         self.hist_lightness = cv2.calcHist([luv], [0], None, [256], [0, 256])
         self.hist_u = cv2.calcHist([luv], [1], None, [256], [0, 256])
         self.hist_v = cv2.calcHist([luv], [2], None, [256], [0, 256])
+
+        self.g(128)
+
 
         plt.figure(1)
         plt.plot(self.hist_lightness, label='lightness')
@@ -61,7 +64,22 @@ class ColorExtractor:
         return min(lst, key=lambda x: x[1])
 
     def l(self, t):
-        pass
+        return sum(sum(self.luv[:, :, 0] == t))
+
+    def g(self, t):
+        img = self.luv[:,:,0]
+        laplacian = cv2.Laplacian(img, cv2.CV_64F)
+
+        mask = cv2.inRange(img, t, t)
+        laplacian_masked = cv2.bitwise_and(laplacian, laplacian, mask=mask)
+
+        plt.figure(22)
+        plt.subplot(221), plt.imshow(img)
+        plt.subplot(222), plt.imshow(laplacian)
+        plt.subplot(223), plt.imshow(laplacian_masked)
+
+        print(np.mean(laplacian_masked))
+        print('gg')
 
     def get_threshold_masks(self, t):
         lower_mask = cv2.inRange(self.luv, np.array([0, 0, 0]), np.array([t-1, 255, 255]))
@@ -82,7 +100,17 @@ class ColorExtractor:
         plt.subplot(325), plt.imshow(higher_masked_image)
         plt.subplot(326), plt.plot(higher_hist)
 
+        plt.figure(5)
+        plt.subplot(121), plt.imshow(lower_mask)
+        plt.subplot(122), plt.imshow(higher_mask)
 
+    def manual_histogram(self):
+        ls = []
+        for i in range(256):
+            ls.append(self.l(i))
+        plt.figure(15)
+        plt.plot(ls)
+        plt.show()
 
 # Get brightness histogram
 # hist = cv2.calcHist([luv], [0], None, [256], [0, 256])
@@ -96,7 +124,8 @@ class ColorExtractor:
 
 
 if __name__ == "__main__":
-    c = ColorExtractor("15.jpg")
+    # c = ColorExtractor("9.jpg")
+    c = ColorExtractor("9.jpg")
     # print(c.k(64), c.k(128), c.k(192))
     # print(c.k(64))
     # plt.legend()
