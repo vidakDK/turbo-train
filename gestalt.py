@@ -53,6 +53,8 @@ class ColorExtractor:
         return (sqrt(d1*n1) + sqrt(d2*n2)) / (sqrt(d0*n0))
 
     def min_k(self):
+        """For each value of pixel value threshold T,
+        check the value of k metric and find the smallest one."""
         lst = []
         for t in range(1, 256):
             lst.append((t, self.k(t)))

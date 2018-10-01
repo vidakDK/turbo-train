@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 from matplotlib import pyplot as plt
+from matplotlib import gridspec
 from sklearn.cluster import KMeans
 
 
@@ -10,6 +11,7 @@ class Colors:
         self.img_rgb = cv2.cvtColor(self.img, cv2.COLOR_BGR2RGB)
         self.img_luv = cv2.cvtColor(self.img, cv2.COLOR_BGR2Luv)
         self.c = c
+        self.img_path = img_path
         if c == "rgb":
             self.img_converted = self.img_rgb
         else:
@@ -53,10 +55,6 @@ class Colors:
         return bar
 
     def find_colors(self):
-        # Plot original image
-        plt.figure()
-        plt.imshow(self.img_rgb)
-
         self._find_clusters()
         self._centroid_histogram()
         bar = self._plot_colors()
@@ -64,21 +62,26 @@ class Colors:
         # Plot color bar:
         if self.c == "luv":
             bar = cv2.cvtColor(bar, cv2.COLOR_LUV2RGB)
-        plt.figure()
-        plt.axis("off")
-        plt.imshow(bar)
 
+        return bar
 
 
 if __name__ == "__main__":
     i1 = "images/9small.jpg"
     i2 = "images/15small.jpg"
     i3 = "images/small.jpg"
-    i4 = "images/7small.jpg"
+    i4 = "images/15small.jpg"
 
-
+    # Calculate RGB/LUV color bars
     c = Colors(i4, "luv")
-    c.find_colors()
+    bar_luv = c.find_colors()
     c = Colors(i4, "rgb")
-    c.find_colors()
+    bar_rgb = c.find_colors()
+
+    # Plot bars and original image:
+    gs = gridspec.GridSpec(2, 2)
+    plt.figure()
+    plt.subplot(gs[:, 0]), plt.gca().set_title(c.img_path), plt.imshow(c.img_rgb), plt.axis("off")
+    plt.subplot(gs[0, 1]), plt.gca().set_title('RGB'), plt.imshow(bar_rgb), plt.axis("off")
+    plt.subplot(gs[1, 1]), plt.gca().set_title('LUV'), plt.imshow(bar_luv), plt.axis("off")
     plt.show()
