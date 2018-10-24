@@ -20,7 +20,7 @@ class Colors:
     def _find_clusters(self):
         image = self.img_converted.reshape((self.img_converted.shape[0] * self.img_converted.shape[1], 3))
 
-        n_clusters = 4
+        n_clusters = 6
         self.clusters = KMeans(n_clusters=n_clusters)
         self.clusters.fit(image)
 
@@ -70,13 +70,15 @@ if __name__ == "__main__":
     i1 = "images/9small.jpg"
     i2 = "images/15small.jpg"
     i3 = "images/small.jpg"
-    i4 = "images/15small.jpg"
+    i4 = "images/styled1.jpg"
 
     # Calculate RGB/LUV color bars
     c = Colors(i4, "luv")
     bar_luv = c.find_colors()
+    plt.figure(), plt.gca().set_title('LUV'), plt.imshow(bar_luv), plt.axis("off")
     c = Colors(i4, "rgb")
     bar_rgb = c.find_colors()
+    plt.figure(), plt.gca().set_title('RGB'), plt.imshow(bar_rgb), plt.axis("off")
 
     # Plot bars and original image:
     gs = gridspec.GridSpec(2, 2)
